@@ -1,0 +1,9 @@
+{
+  "name": "Matching Concepts Add-on",
+  "package": "match_addon",
+  "author": "Sara Chiriboga",
+  "version": "1.0",
+  "min_point_version": 45,
+  "max_point_version": 50,
+  "homepage": ""
+}

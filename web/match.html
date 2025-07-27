@@ -1,24 +1,135 @@
+<!---------------------------->
+<!-- made by Sara Chiriboga -->
+<!-- discord: sarilolaaa    -->
+<!---------------------------->
+
 <!DOCTYPE html>
-<html lang="es" style="font-family: Arial, Helvetica, sans-serif; font-size: 25px;">
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="match.css">
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 25px;
+    }
+    #card-question {
+      text-align: center;
+      font-size: 27px;
+    }
+    .concept {
+      font-size: 25px;
+      border-radius: 3px;
+      width: 100px;
+      max-width: 300px;
+    }
+    #cont {
+      display: flex;
+      justify-content: space-around;
+      flex-direction: column;
+      gap: 20px;
+      width: fit-content;
+      margin: 0 auto;
+    }
+    .concept-pair {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .definition {
+      width: 400px;
+      max-width: 900px;
+      word-wrap: break-word;
+      margin-left: 100px;
+    }
+  </style>
 </head>
 <body>
-  <!-- question or instructions -->
-  <h1 id= "card-question">{{Matching Exercise Question}}</h1>
-  <!-- combo box with answers -->
-  <div id="cont">
-    <div class="concept-pair">
-      <label for="concept1">{{Concept Name}}</label>
-      <select id="concept1">
-      </select>
-    </div>
-    <!-- definition -->
-    <div id="definition">
-        {{Here write some text, the definition or some sort of information about the concept you are learning about}}
-    </div>
+
+<h1 id="card-question">{{Question or Instructions}}</h1>
+
+<div id="cont">
+  <div class="concept-pair">
+    <label for="concept1">{{Concept 1}}</label>
+    <select id="concept1" class="concept"></select>
+    <div id="definition1" class="definition">{{Answer 1}}</div>
   </div>
+
+  <div class="concept-pair">
+    <label for="concept2">{{Concept 2}}</label>
+    <select id="concept2" class="concept"></select>
+    <div id="definition2" class="definition">{{Answer 2}}</div>
+  </div>
+
+  <div class="concept-pair">
+    <label for="concept3">{{Concept 3}}</label>
+    <select id="concept3" class="concept"></select>
+    <div id="definition3" class="definition">{{Answer 3}}</div>
+  </div>
+
+  <div class="concept-pair">
+    <label for="concept4">{{Concept 4}}</label>
+    <select id="concept4" class="concept"></select>
+    <div id="definition4" class="definition">{{Answer 4}}</div>
+  </div>
+</div>
+
+<script>
+// Función para detectar placeholders de Anki
+function isAnkiPlaceholder(text) {
+  return typeof text === 'string' && text.startsWith('{{') && text.endsWith('}}');
+}
+
+// Función para contar respuestas válidas
+function countValidAnswers() {
+  let count = 0;
+  document.querySelectorAll('.definition').forEach(def => {
+    const content = def.textContent.trim();
+    if(content && !isAnkiPlaceholder(content)) {
+      count++;
+    }
+  });
+  return count;
+}
+
+// Inicialización cuando el DOM está listo
+(function initCard() {
+  try {
+    // 1. Numerar las respuestas existentes
+    const definitions = document.querySelectorAll('.definition');
+    definitions.forEach((def, index) => {
+      const content = def.textContent.trim();
+      if(content && !isAnkiPlaceholder(content)) {
+        def.textContent = `${index + 1}. ${content}`;
+      }
+    });
+
+    // 2. Llenar los selects basado en respuestas válidas
+    const answerCount = countValidAnswers();
+    const selects = document.querySelectorAll('.concept');
+    
+    selects.forEach(select => {
+      // Limpiar y añadir opción por defecto
+      select.innerHTML = '<option value="">Select</option>';
+      
+      // Añadir opciones numeradas
+      for(let i = 1; i <= answerCount; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i;
+        select.appendChild(option);
+      }
+    });
+
+  } catch(error) {
+    console.error('Anki card error:', error);
+    const errorDisplay = document.createElement('div');
+    errorDisplay.style.color = 'red';
+    errorDisplay.textContent = 'Error processing card';
+    document.getElementById('card-question').after(errorDisplay);
+  }
+})();
+</script>
 </body>
 </html>

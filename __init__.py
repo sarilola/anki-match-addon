@@ -1,91 +1,107 @@
+# C:\Users\saril\AppData\Roaming\Anki2\addons21\match_addon\__init__.py
+
 from aqt import mw
 from aqt.qt import *
 from aqt.editor import Editor
-from aqt.gui_hooks import editor_did_init_buttons
-import json
-
-# register a new note type in anki
-def add_match_note_type():
-    mm = mw.col.models
-    match_model = mm.new("Matching Concepts")
-    
-    # fields inside the model
-    mm.add_field(match_model, mm.new_field("Question"))
-    mm.add_field(match_model, mm.new_field("Concept"))
-    mm.add_field(match_model, mm.new_field("Answer"))
-    
-    # card's interface
-    template = mm.new_template("Match Card")
-    template['afmt'] = "{{FrontSide}}<hr id='answer'>"
-    
-    # adding the template to de card model
-    mm.add_template(match_model, template)
-    mm.add(match_model)
-
-
-# button in the editor
-def setup_editor_buttons(buttons, editor):
-    def create_match_card():
-        # create new note with JSON structure
-        note = editor.note
-        note.fields[0] = "Write the question or instructions"
-        note.fields[1] = json.dumps({
-            "preguntas": [
-                {"texto": "Pregunta 1", "opciones": ["Opción A", "Opción B"]},
-                {"texto": "Pregunta 2", "opciones": ["Opción C", "Opción D"]}
-            ]
-        })
-        editor.loadNote()
-    
-    b = editor.addButton(icon="match.png", cmd="match_card",
-                         func=create_match_card, tip="Crear ejercicio Match")
-    buttons.append(b)
-    return buttons
-
-# initialize
-def init():
-    add_match_note_type()
-    editor_did_init_buttons.append(setup_editor_buttons)
-
-init()
-
 from aqt.webview import WebContent
-from aqt.gui_hooks import webview_did_receive_js_message
+from aqt.gui_hooks import editor_did_init_buttons, webview_will_set_content, card_will_show, profile_did_open
+import json
+import os
 
-# 4. Inyectar recursos web
-def on_webview_set_content(web_content: WebContent, context):
-    if isinstance(context, anki.cards.Card) and context.note().model()['name'] == "Match Exercise":
-        web_content.js.append("/_addons/match_addon/web/match.js")
-        web_content.css.append("/_addons/match_addon/web/match.css")
-        web_content.body += mw.col.media.escape_html(context.note().fields[1])
+def create_note_type():
+    try:
+        mm = mw.col.models
+        model_name = "Matching Exercise"
 
-# 5. Manejar verificación
-def handle_js_message(handled, cmd, context):
-    if cmd.startswith("verificar:"):
-        resultados = json.loads(cmd[10:])
-        # Lógica de verificación (aquí usarías las respuestas correctas)
-        correctas = all(r != "" for r in resultados)  # Ejemplo simple
-        
-        # Enviar resultado a JS
-        js = f"showResult({json.dumps(correctas)})"
-        context.web.eval(js)
-        return (True, None)
-    return handled
+        if mm.by_name(model_name):
+            print(f"Note type '{model_name}' already exists. Skipping creation.")
+            return True
 
-# 6. Mostrar resultado en JS
-JS_SHOW_RESULT = """
-function showResult(correct) {
-    const resultDiv = document.getElementById('resultado');
-    resultDiv.textContent = correct ? 
-        '✅ Todas correctas!' : '❌ Algunas respuestas faltantes';
-    resultDiv.style.color = correct ? 'green' : 'red';
-}
-"""
+        print(f"Creating note type: {model_name}")
+        model = mm.new(model_name)
 
-# 7. Configurar hooks
-def init_web():
-    gui_hooks.webview_will_set_content.append(on_webview_set_content)
-    gui_hooks.webview_did_receive_js_message.append(handle_js_message)
-    mw.addonManager.setWebExports(__name__, r"web/.*")
+        mm.add_field(model, mm.new_field("Question or Instructions"))
+        mm.add_field(model, mm.new_field("Concept 1"))
+        mm.add_field(model, mm.new_field("Answer 1"))
+        mm.add_field(model, mm.new_field("Concept 2"))
+        mm.add_field(model, mm.new_field("Answer 2"))
+        mm.add_field(model, mm.new_field("Concept 3"))
+        mm.add_field(model, mm.new_field("Answer 3"))
+        mm.add_field(model, mm.new_field("Concept 4"))
+        mm.add_field(model, mm.new_field("Answer 4"))
 
-init_web()
+        template = mm.new_template("Match Card")
+        template['qfmt'] = load_template_html("match.html")
+        template['afmt'] = load_template_html("match.html")
+
+        mm.add_template(model, template)
+        mm.add(model)
+        mw.col.models.save(model)
+        mw.col.save()
+        print(f"Note type '{model_name}' created successfully.")
+        return True
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Error creating note type: {e}")
+        return False
+
+def load_template_html(filename):
+    addon_package = mw.addonManager.addonFromModule(__name__)
+    file_path = os.path.join(mw.addonManager.addonsFolder(), addon_package, "web", filename)
+    with open(file_path, encoding="utf-8") as f:
+        return f.read()
+
+def inject_web_resources(web_content: WebContent, context):
+    if isinstance(context, Editor):
+        model = mw.col.models.by_name("Matching Exercise")
+        if model and context.note and context.note.mid == model["id"]:
+            addon_package = mw.addonManager.addonFromModule(__name__)
+            web_content.js.append(f"/_addons/{addon_package}/web/match.js")
+    elif hasattr(context, 'note') and context.note is not None:
+        if "Question or Instructions" in context.note:
+            addon_package = mw.addonManager.addonFromModule(__name__)
+            web_content.js.append(f"/_addons/{addon_package}/web/match.js")
+
+def setup_card_html(text: str, card, context):
+    note = card.note()
+    try:
+        if "Question or Instructions" in note:
+            # Load the template HTML
+            addon_package = mw.addonManager.addonFromModule(__name__)
+            file_path = os.path.join(mw.addonManager.addonsFolder(), addon_package, "web", "match.html")
+            with open(file_path, encoding="utf-8") as f:
+                html = f.read()
+            
+            # Replace placeholders
+            html = html.replace("{{Question or Instructions}}", note["Question or Instructions"])
+            html = html.replace("{{Concept 1}}", note["Concept 1"])
+            html = html.replace("{{Answer 1}}", note["Answer 1"])
+            html = html.replace("{{Concept 2}}", note["Concept 2"])
+            html = html.replace("{{Answer 2}}", note["Answer 2"])
+            html = html.replace("{{Concept 3}}", note["Concept 3"])
+            html = html.replace("{{Answer 3}}", note["Answer 3"])
+            html = html.replace("{{Concept 4}}", note["Concept 4"])
+            html = html.replace("{{Answer 4}}", note["Answer 4"])
+            
+            return html
+    except Exception as e:
+        return text + f"<div style='color:red'>Error procesando tarjeta: {str(e)}</div>"
+    return text
+
+def initialize_addon():
+    try:
+        mw.addonManager.setWebExports(__name__, r"web/.*")
+        webview_will_set_content.append(inject_web_resources)
+        card_will_show.append(setup_card_html)
+    except Exception as e:
+        print(f"Error inicializando add-on: {str(e)}")
+
+if mw:
+    profile_did_open.append(lambda: (
+        create_note_type(),
+        initialize_addon()
+    ))
+else:
+    print("Error: mw no está disponible")
