@@ -1,0 +1,142 @@
+<!-- BACK - made by Sara Chiriboga -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 25px; }
+    #card-question { text-align: center; font-size: 27px; margin-bottom: 30px; }
+    .concept {
+      font-size: 25px;
+      border-radius: 3px;
+      width: 100px;
+      max-width: 300px;
+      pointer-events: none; /* desactiva interacción */
+      transition: background-color 0.3s;
+    }
+    #cont {
+      display: flex;
+      justify-content: space-around;
+      flex-direction: column;
+      gap: 20px;
+      width: fit-content;
+      margin: 0 auto;
+    }
+    .concept-pair {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .definition {
+      width: 400px;
+      max-width: 900px;
+      word-wrap: break-word;
+      margin-left: 100px;
+    }
+    .correct-answer { background-color: #75f894 !important; border: 2px solid #28a745 !important; }
+    .incorrect-answer { background-color: #f1626e !important; border: 2px solid #dc3545 !important; }
+  </style>
+</head>
+<body>
+
+<h1 id="card-question">{{Question or Instructions}}</h1>
+<div id="cont"></div>
+<script>
+    // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
+    if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(i=t),sessionStorage.removeItem(e+i)},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
+</script>
+<script>
+(function initBack() {
+  try {
+    // --- Paso 1: campos definidos en la tarjeta ---
+    const definitionFields = [
+      "{{Answer 1}}", "{{Answer 2}}", "{{Answer 3}}", "{{Answer 4}}"
+    ];
+    const conceptFields = [
+      "{{Concept 1}}", "{{Concept 2}}", "{{Concept 3}}", "{{Concept 4}}"
+    ];
+
+    // --- Paso 2: limpiar y validar campos ---
+    function isAnkiPlaceholder(text) {
+      return typeof text === 'string' && text.startsWith('\x7B') && text.endsWith('\x7D\x7D');
+    }
+
+    const validDefinitions = definitionFields.map((text, idx) => ({ text: text.trim().replace(/^\d+\.\s*/, ''), idx }))
+      .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
+    const validConcepts = conceptFields.map((text, idx) => ({ text: text.trim(), idx }))
+      .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
+
+    const answerCount = Math.min(validDefinitions.length, validConcepts.length);
+
+    // --- Paso 3: recuperar persistencia usando anki-persistence ---
+    function loadData(key, fallback) {
+      if (window.Persistence && typeof window.Persistence.getItem === "function") {
+        const result = window.Persistence.getItem(key);
+        return result !== null ? result : fallback;
+      }
+      return fallback;
+    }
+
+    const shuffledIndexes = loadData("shuffledIndexes", Array.from({ length: answerCount }, (_, i) => i));
+    const savedSelections = loadData("selections", Array(answerCount).fill(""));
+
+    // --- Paso 4: generar layout con definiciones mezcladas ---
+    const cont = document.getElementById('cont');
+    cont.innerHTML = "";
+
+    for (let i = 0; i < answerCount; i++) {
+      const defIdx = shuffledIndexes[i];
+      const defText = validDefinitions[defIdx].text;
+      const conceptText = validConcepts[i].text;
+      const selection = parseInt(savedSelections[i]);
+
+      const pairDiv = document.createElement('div');
+      pairDiv.className = 'concept-pair';
+
+      const label = document.createElement('label');
+      label.setAttribute('for', `concept${i+1}`);
+      label.textContent = conceptText;
+
+      const select = document.createElement('select');
+      select.id = `concept${i+1}`;
+      select.className = 'concept';
+      select.innerHTML = '<option value="">Select</option>';
+      for (let j = 1; j <= answerCount; j++) {
+        const opt = document.createElement('option');
+        opt.value = j;
+        opt.textContent = j;
+        select.appendChild(opt);
+      }
+
+      if (selection) {
+        select.value = selection;
+        if (selection === i + 1) {
+          select.classList.add('correct-answer');
+        } else {
+          select.classList.add('incorrect-answer');
+        }
+      }
+
+      const defDiv = document.createElement('div');
+      defDiv.className = 'definition';
+      defDiv.textContent = `${i + 1}. ${defText}`;
+
+      pairDiv.appendChild(label);
+      pairDiv.appendChild(select);
+      pairDiv.appendChild(defDiv);
+      cont.appendChild(pairDiv);
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    const errorDiv = document.createElement('div');
+    errorDiv.style.color = 'red';
+    errorDiv.textContent = 'Error loading card';
+    document.getElementById('card-question').after(errorDiv);
+  }
+})();
+</script>
+</body>
+</html>

@@ -31,8 +31,8 @@ def create_note_type():
         mm.add_field(model, mm.new_field("Answer 4"))
 
         template = mm.new_template("Match Card")
-        template['qfmt'] = load_template_html("match.html")
-        template['afmt'] = load_template_html("match.html")
+        template['qfmt'] = load_template_html("match_front.html")
+        template['afmt'] = load_template_html("match_back.html")
 
         mm.add_template(model, template)
         mm.add(model)
@@ -68,26 +68,35 @@ def setup_card_html(text: str, card, context):
     note = card.note()
     try:
         if "Question or Instructions" in note:
-            # Load the template HTML
+            # Determine which template to load based on context
+            template_file = "match_back.html" if context == "reviewAnswer" else "match_front.html"
+            
+            # Load the correct template
             addon_package = mw.addonManager.addonFromModule(__name__)
-            file_path = os.path.join(mw.addonManager.addonsFolder(), addon_package, "web", "match.html")
+            file_path = os.path.join(mw.addonManager.addonsFolder(), addon_package, "web", template_file)
+            
             with open(file_path, encoding="utf-8") as f:
                 html = f.read()
             
             # Replace placeholders
-            html = html.replace("{{Question or Instructions}}", note["Question or Instructions"])
-            html = html.replace("{{Concept 1}}", note["Concept 1"])
-            html = html.replace("{{Answer 1}}", note["Answer 1"])
-            html = html.replace("{{Concept 2}}", note["Concept 2"])
-            html = html.replace("{{Answer 2}}", note["Answer 2"])
-            html = html.replace("{{Concept 3}}", note["Concept 3"])
-            html = html.replace("{{Answer 3}}", note["Answer 3"])
-            html = html.replace("{{Concept 4}}", note["Concept 4"])
-            html = html.replace("{{Answer 4}}", note["Answer 4"])
+            replacements = {
+                "{{Question or Instructions}}": note["Question or Instructions"],
+                "{{Concept 1}}": note["Concept 1"],
+                "{{Answer 1}}": note["Answer 1"],
+                "{{Concept 2}}": note["Concept 2"],
+                "{{Answer 2}}": note["Answer 2"],
+                "{{Concept 3}}": note["Concept 3"],
+                "{{Answer 3}}": note["Answer 3"],
+                "{{Concept 4}}": note["Concept 4"],
+                "{{Answer 4}}": note["Answer 4"]
+            }
+            
+            for placeholder, value in replacements.items():
+                html = html.replace(placeholder, value)
             
             return html
     except Exception as e:
-        return text + f"<div style='color:red'>Error procesando tarjeta: {str(e)}</div>"
+        return text + f"<div style='color:red'>Error processing card: {str(e)}</div>"
     return text
 
 def initialize_addon():
