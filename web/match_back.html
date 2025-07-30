@@ -1,4 +1,6 @@
-<!-- BACK - Sara Chiriboga - matching corrected -->
+<!-- made by sara chiriboga
+     discord: sarilolaaa -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,12 +46,15 @@
 <h1 id="card-question">{{Question or Instructions}}</h1>
 <div id="cont"></div>
 <script>
-  // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
+  // --- Persistence library for saving state between card front/back (from SimonLammer/anki-persistence) ---
+  // Provides a cross-platform way to store data in sessionStorage or window objects for Anki cards
   if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(i=t),sessionStorage.removeItem(e+i)},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
 </script>
 <script>
+// --- Main logic: initialize the matching card back (shows answers and feedback) ---
 (function initBack() {
   try {
+    // Get field values for definitions and concepts (from Anki template)
     const definitionFields = [
       "{{Answer 1}}", "{{Answer 2}}", "{{Answer 3}}", "{{Answer 4}}"
     ];
@@ -57,18 +62,19 @@
       "{{Concept 1}}", "{{Concept 2}}", "{{Concept 3}}", "{{Concept 4}}"
     ];
 
+    // --- Utility: Checks if a string is an Anki placeholder (e.g., {{Field}}) ---
     function isAnkiPlaceholder(text) {
       return typeof text === 'string' && text.startsWith('\x7B') && text.endsWith('\x7D\x7D');
     }
 
-    // Definiciones y conceptos originales
+    // Remove empty/placeholder fields and keep original index for answer checking
     const validDefinitions = definitionFields.map((text, idx) => ({ text: text.trim().replace(/^\d+\.\s*/, ''), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
     const validConcepts = conceptFields.map((text, idx) => ({ text: text.trim(), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
     const answerCount = Math.min(validDefinitions.length, validConcepts.length);
 
-    // Recupera la mezcla actual de definiciones del front
+    // --- Load the shuffled mapping and user selections from the front ---
     function loadData(key, fallback) {
       if (window.Persistence && typeof window.Persistence.getItem === "function") {
         const result = window.Persistence.getItem(key);
@@ -83,9 +89,9 @@
     }
     const savedSelections = loadData("selections", Array(answerCount).fill(""));
 
-    // Para cada concepto, busca el índice donde está SU definición en la lista mezclada.
-    // El número correcto es ese índice+1, porque la lista de la derecha empieza en 1.
-    // Por ejemplo: para "idk", busca en shuffledDefinitions el objeto que tiene text igual a la definición de "idk" en validDefinitions.
+    // For each concept, find the index of its correct definition in the shuffled list.
+    // The correct answer is that index+1 (since the right column is numbered from 1).
+    // For example: for concept "idk", find in shuffledDefinitions the object whose text matches the original definition.
 
     const cont = document.getElementById('cont');
     cont.innerHTML = "";
@@ -94,15 +100,15 @@
       const conceptText = validConcepts[i]?.text ?? '';
       const originalDef = validDefinitions[i]?.text ?? '';
 
-      // Busca en la lista mezclada la posición de la definición de este concepto
+      // Find the position of this concept's definition in the shuffled list
       const idxInShuffled = shuffledDefinitions.findIndex(def => def.text === originalDef);
 
-      // El número correcto es ese índice+1
+      // The correct answer is that index+1
       const correctNumber = idxInShuffled + 1;
 
       const userSelection = parseInt(savedSelections[i]);
 
-      // Mostrar en pantalla lo mismo que el front
+      // Build the row: concept, select, and definition (same as front)
       const pairDiv = document.createElement('div');
       pairDiv.className = 'concept-pair';
 
@@ -121,6 +127,7 @@
         select.appendChild(opt);
       }
 
+      // Show user's selection and color it green/red if correct/incorrect
       if (userSelection) {
         select.value = userSelection;
         if (userSelection === correctNumber) {
@@ -130,7 +137,7 @@
         }
       }
 
-      // El texto de la definición (lado derecho) de la fila i
+      // Definition text (right side)
       const defText = shuffledDefinitions[i]?.text ?? '';
       const defDiv = document.createElement('div');
       defDiv.className = 'definition';
@@ -143,6 +150,7 @@
     }
 
   } catch (error) {
+    // Show error in card if something fails
     console.error('Error:', error);
     const errorDiv = document.createElement('div');
     errorDiv.style.color = 'red';

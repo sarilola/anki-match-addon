@@ -1,4 +1,6 @@
-<!-- FRONT - made by Sara Chiriboga -->
+<!-- made by sara chiriboga
+     discord: sarilolaaa -->
+     
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,15 +22,17 @@
 <h1 id="card-question">{{Question or Instructions}}</h1>
 <div id="cont"></div>
 <script>
-  // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
+  // --- Persistence library for saving state between card front/back (from SimonLammer/anki-persistence) ---
+  // Provides a cross-platform way to store data in sessionStorage or window objects for Anki cards
   if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(i=t),sessionStorage.removeItem(e+i)},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
 </script>
 <script>
+// --- Utility: Checks if a string is an Anki placeholder (e.g., {{Field}}) ---
 function isAnkiPlaceholder(text) {
   return typeof text === 'string' && text.startsWith('\x7B') && text.endsWith('\x7D\x7D');
 }
 
-// Fisher-Yates
+// --- Utility: Fisher-Yates shuffle for randomizing arrays ---
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -37,12 +41,14 @@ function shuffleArray(array) {
   return array;
 }
 
-// anki-persistence para selecciones
+// --- Save data to persistence (for use between front/back of card) ---
 function saveData(key, value) {
   if (window.Persistence && typeof window.Persistence.setItem === "function") {
     window.Persistence.setItem(key, value);
   }
 }
+
+// --- Load data from persistence, with fallback ---
 function loadData(key, fallback) {
   if (window.Persistence && typeof window.Persistence.getItem === "function") {
     const result = window.Persistence.getItem(key);
@@ -51,8 +57,10 @@ function loadData(key, fallback) {
   return fallback;
 }
 
+// --- Main logic: initialize the matching card front ---
 (function initFront() {
   try {
+    // Get field values for definitions and concepts (from Anki template)
     const definitionFields = [
       "{{Answer 1}}", "{{Answer 2}}", "{{Answer 3}}", "{{Answer 4}}"
     ];
@@ -60,26 +68,27 @@ function loadData(key, fallback) {
       "{{Concept 1}}", "{{Concept 2}}", "{{Concept 3}}", "{{Concept 4}}"
     ];
 
-    // Guardar índice original en cada definición
+    // Remove empty/placeholder fields and keep original index for answer checking
     const validDefinitions = definitionFields.map((text, idx) => ({ text: text.trim().replace(/^\d+\.\s*/, ''), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
     const validConcepts = conceptFields.map((text, idx) => ({ text: text.trim(), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
 
+    // Only use as many pairs as both sides have
     const answerCount = Math.min(validDefinitions.length, validConcepts.length);
 
-    // MEZCLAR SIEMPRE
-    let shuffledDefinitions = validDefinitions.slice(0, answerCount); // array con índice original
+    // --- Shuffle definitions for matching ---
+    let shuffledDefinitions = validDefinitions.slice(0, answerCount); // array with original index
     shuffleArray(shuffledDefinitions);
 
-    // Guardamos el mapeo para el back
+    // Save the shuffled mapping for use on the back of the card
     saveData("shuffledDefinitions", shuffledDefinitions);
 
-
-    // Siempre iniciar los selects en estado default (sin selección)
+    // --- Initialize all selects to default (no selection) and save ---
     let savedSelections = Array(answerCount).fill("");
     saveData("selections", savedSelections);
 
+    // --- Build the UI: one row per concept/definition pair ---
     const cont = document.getElementById('cont');
     cont.innerHTML = "";
 
@@ -87,13 +96,16 @@ function loadData(key, fallback) {
       const defText = shuffledDefinitions[i]?.text ?? '';
       const conceptLabel = validConcepts[i]?.text ?? '';
 
+      // Row container
       const pairDiv = document.createElement('div');
       pairDiv.className = 'concept-pair';
 
+      // Concept label
       const label = document.createElement('label');
       label.textContent = conceptLabel;
       label.setAttribute('for', `concept${i+1}`);
 
+      // Dropdown for selecting answer
       const select = document.createElement('select');
       select.className = 'concept';
       select.id = `concept${i+1}`;
@@ -106,22 +118,26 @@ function loadData(key, fallback) {
       }
       if (savedSelections[i]) select.value = savedSelections[i];
 
+      // Save selection changes to persistence
       select.addEventListener('change', () => {
         const selects = document.querySelectorAll('.concept');
         const newSelections = Array.from(selects).map(s => s.value);
         saveData("selections", newSelections);
       });
 
+      // Definition text
       const defDiv = document.createElement('div');
       defDiv.className = 'definition';
       defDiv.textContent = `${i+1}. ${defText}`;
 
+      // Assemble row
       pairDiv.appendChild(label);
       pairDiv.appendChild(select);
       pairDiv.appendChild(defDiv);
       cont.appendChild(pairDiv);
     }
 
+    // --- Expose hooks for Anki to show/hide answers ---
     window.onShowAnswer = () => {
       document.getElementById('cont').classList.add('answer-shown');
     };
@@ -130,6 +146,7 @@ function loadData(key, fallback) {
     };
 
   } catch (error) {
+    // Show error in card if something fails
     console.error('Error:', error);
     const errorDiv = document.createElement('div');
     errorDiv.style.color = 'red';
