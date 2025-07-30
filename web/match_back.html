@@ -1,4 +1,4 @@
-<!-- BACK - made by Sara Chiriboga -->
+<!-- BACK - Sara Chiriboga - matching corrected -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +11,7 @@
       border-radius: 3px;
       width: 100px;
       max-width: 300px;
-      pointer-events: none; /* desactiva interacción */
+      pointer-events: none;
       transition: background-color 0.3s;
     }
     #cont {
@@ -44,13 +44,12 @@
 <h1 id="card-question">{{Question or Instructions}}</h1>
 <div id="cont"></div>
 <script>
-    // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
-    if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(i=t),sessionStorage.removeItem(e+i)},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
+  // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
+  if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(i=t),sessionStorage.removeItem(e+i)},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
 </script>
 <script>
 (function initBack() {
   try {
-    // --- Paso 1: campos definidos en la tarjeta ---
     const definitionFields = [
       "{{Answer 1}}", "{{Answer 2}}", "{{Answer 3}}", "{{Answer 4}}"
     ];
@@ -58,19 +57,18 @@
       "{{Concept 1}}", "{{Concept 2}}", "{{Concept 3}}", "{{Concept 4}}"
     ];
 
-    // --- Paso 2: limpiar y validar campos ---
     function isAnkiPlaceholder(text) {
       return typeof text === 'string' && text.startsWith('\x7B') && text.endsWith('\x7D\x7D');
     }
 
+    // Definiciones y conceptos originales
     const validDefinitions = definitionFields.map((text, idx) => ({ text: text.trim().replace(/^\d+\.\s*/, ''), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
     const validConcepts = conceptFields.map((text, idx) => ({ text: text.trim(), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
-
     const answerCount = Math.min(validDefinitions.length, validConcepts.length);
 
-    // --- Paso 3: recuperar persistencia usando anki-persistence ---
+    // Recupera la mezcla actual de definiciones del front
     function loadData(key, fallback) {
       if (window.Persistence && typeof window.Persistence.getItem === "function") {
         const result = window.Persistence.getItem(key);
@@ -79,19 +77,32 @@
       return fallback;
     }
 
-    const shuffledIndexes = loadData("shuffledIndexes", Array.from({ length: answerCount }, (_, i) => i));
+    let shuffledDefinitions = loadData("shuffledDefinitions", []);
+    if (!Array.isArray(shuffledDefinitions) || shuffledDefinitions.length !== answerCount) {
+      shuffledDefinitions = validDefinitions.slice(0, answerCount);
+    }
     const savedSelections = loadData("selections", Array(answerCount).fill(""));
 
-    // --- Paso 4: generar layout con definiciones mezcladas ---
+    // Para cada concepto, busca el índice donde está SU definición en la lista mezclada.
+    // El número correcto es ese índice+1, porque la lista de la derecha empieza en 1.
+    // Por ejemplo: para "idk", busca en shuffledDefinitions el objeto que tiene text igual a la definición de "idk" en validDefinitions.
+
     const cont = document.getElementById('cont');
     cont.innerHTML = "";
 
     for (let i = 0; i < answerCount; i++) {
-      const defIdx = shuffledIndexes[i];
-      const defText = validDefinitions[defIdx].text;
-      const conceptText = validConcepts[i].text;
-      const selection = parseInt(savedSelections[i]);
+      const conceptText = validConcepts[i]?.text ?? '';
+      const originalDef = validDefinitions[i]?.text ?? '';
 
+      // Busca en la lista mezclada la posición de la definición de este concepto
+      const idxInShuffled = shuffledDefinitions.findIndex(def => def.text === originalDef);
+
+      // El número correcto es ese índice+1
+      const correctNumber = idxInShuffled + 1;
+
+      const userSelection = parseInt(savedSelections[i]);
+
+      // Mostrar en pantalla lo mismo que el front
       const pairDiv = document.createElement('div');
       pairDiv.className = 'concept-pair';
 
@@ -110,15 +121,17 @@
         select.appendChild(opt);
       }
 
-      if (selection) {
-        select.value = selection;
-        if (selection === i + 1) {
+      if (userSelection) {
+        select.value = userSelection;
+        if (userSelection === correctNumber) {
           select.classList.add('correct-answer');
         } else {
           select.classList.add('incorrect-answer');
         }
       }
 
+      // El texto de la definición (lado derecho) de la fila i
+      const defText = shuffledDefinitions[i]?.text ?? '';
       const defDiv = document.createElement('div');
       defDiv.className = 'definition';
       defDiv.textContent = `${i + 1}. ${defText}`;

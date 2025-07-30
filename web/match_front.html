@@ -28,6 +28,7 @@ function isAnkiPlaceholder(text) {
   return typeof text === 'string' && text.startsWith('\x7B') && text.endsWith('\x7D\x7D');
 }
 
+// Fisher-Yates
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -36,13 +37,12 @@ function shuffleArray(array) {
   return array;
 }
 
-// Usar anki-persistence en lugar de anki.getData/setData
+// anki-persistence para selecciones
 function saveData(key, value) {
   if (window.Persistence && typeof window.Persistence.setItem === "function") {
     window.Persistence.setItem(key, value);
   }
 }
-
 function loadData(key, fallback) {
   if (window.Persistence && typeof window.Persistence.getItem === "function") {
     const result = window.Persistence.getItem(key);
@@ -60,6 +60,7 @@ function loadData(key, fallback) {
       "{{Concept 1}}", "{{Concept 2}}", "{{Concept 3}}", "{{Concept 4}}"
     ];
 
+    // Guardar índice original en cada definición
     const validDefinitions = definitionFields.map((text, idx) => ({ text: text.trim().replace(/^\d+\.\s*/, ''), idx }))
       .filter(obj => obj.text && !isAnkiPlaceholder(obj.text));
     const validConcepts = conceptFields.map((text, idx) => ({ text: text.trim(), idx }))
@@ -67,25 +68,24 @@ function loadData(key, fallback) {
 
     const answerCount = Math.min(validDefinitions.length, validConcepts.length);
 
-    let shuffledIndexes = loadData("shuffledIndexes", []);
-    if (!Array.isArray(shuffledIndexes) || shuffledIndexes.length !== answerCount) {
-      shuffledIndexes = Array.from({length: answerCount}, (_, i) => i);
-      shuffleArray(shuffledIndexes);
-      saveData("shuffledIndexes", shuffledIndexes);
-    }
+    // MEZCLAR SIEMPRE
+    let shuffledDefinitions = validDefinitions.slice(0, answerCount); // array con índice original
+    shuffleArray(shuffledDefinitions);
 
-    let savedSelections = loadData("selections", []);
-    if (!Array.isArray(savedSelections) || savedSelections.length !== answerCount) {
-      savedSelections = Array(answerCount).fill("");
-    }
+    // Guardamos el mapeo para el back
+    saveData("shuffledDefinitions", shuffledDefinitions);
+
+
+    // Siempre iniciar los selects en estado default (sin selección)
+    let savedSelections = Array(answerCount).fill("");
+    saveData("selections", savedSelections);
 
     const cont = document.getElementById('cont');
     cont.innerHTML = "";
 
     for (let i = 0; i < answerCount; i++) {
-      const defIdx = shuffledIndexes[i];
-      const defText = validDefinitions[defIdx].text;
-      const conceptLabel = validConcepts[i].text;
+      const defText = shuffledDefinitions[i]?.text ?? '';
+      const conceptLabel = validConcepts[i]?.text ?? '';
 
       const pairDiv = document.createElement('div');
       pairDiv.className = 'concept-pair';
@@ -138,6 +138,5 @@ function loadData(key, fallback) {
   }
 })();
 </script>
-
 </body>
 </html>
