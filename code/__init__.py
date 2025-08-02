@@ -113,4 +113,4 @@ if mw:
         initialize_addon()
     ))
 else:
-    print("Error: mw no está disponible")
+    print("Error: mw is not avaible")
